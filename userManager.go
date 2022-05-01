@@ -17,7 +17,7 @@ func CreateNewUser(username, password string) {
 func (user *User) LogIn(username string, pwdHash string) bool {
 	pwdHashForUserInDb := systemManager.m_mainDbManager.PerformRequest("select pwd_hash from users where username='" + username + "'")
 
-	if pwdHashForUserInDb == pwdHashForUserInDb {
+	if pwdHashForUserInDb == pwdHash {
 		fmt.Println("\nLogin successfull")
 		return true
 	}

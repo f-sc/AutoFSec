@@ -9,6 +9,8 @@ func main() {
 		fmt.Println("\nSystem init successfull")
 	}
 
+	InitializeServer("5555")
+
 	CreateNewUser("XXX", "1312")
 
 	var user User

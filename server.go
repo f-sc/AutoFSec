@@ -2,81 +2,79 @@ package main
 
 import (
 	"fmt"
-	"net"
+	"io/ioutil"
+	"net/http"
+	"os"
 	"strings"
-	"sync"
 )
 
-type Server struct {
-	m_serverSocket     net.Listener
-	m_waitGroup        sync.WaitGroup
-	m_connectedClients map[string]net.Conn
-	m_isServerWorking  bool
-}
+const indexPage = `
+<h1>Login</h1>
+<form method="post" action="/login">
+    <label for="name">User name</label>
+    <input type="text" id="name" name="name">
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password">
+    <button type="submit">Login</button>
+</form>
+`
 
-func (serverEntity *Server) StartServer(ip string, port string) bool {
-	var serverInitializationError error
-	serverEntity.m_serverSocket, serverInitializationError = net.Listen("tcp", ip+":"+port)
+const indexPage2 = `
+<h1>Login done!</h1>
+`
 
-	return serverInitializationError != nil
-}
-
-func InitializeConnection() {
-	var mainServerEntity *Server = new(Server)
-	mainServerEntity.StartServer("localhost", "5555")
-
-	defer mainServerEntity.StopServer()
-
-	mainServerEntity.m_connectedClients = make(map[string]net.Conn, 0)
-
-	for {
-		newClient, clientAcceptError := mainServerEntity.m_serverSocket.Accept()
-		if clientAcceptError != nil {
-			fmt.Println("Error while establishing connection with new client!")
-			return
-		}
-
-		if newClient != nil {
-			mainServerEntity.m_connectedClients[newClient.LocalAddr().String()] = newClient
-
-			mainServerEntity.m_waitGroup.Add(1)
-
-			go mainServerEntity.ProcessClientConnection(newClient.LocalAddr().String())
-		}
-
+func ReadWebFile(filename string) []byte {
+	filePointer, error := os.OpenFile(filename, os.O_RDWR, 0666)
+	if error == nil {
+		fileInfo, _ := os.Stat("html/index.html")
+		readBuffer := make([]byte, fileInfo.Size())
+		filePointer.Read(readBuffer)
+		return readBuffer
 	}
+	return []byte{}
 }
 
-func (serverEntity *Server) StopServer() {
-	if serverEntity.m_isServerWorking {
-		fmt.Println("Stopping server!")
-		serverEntity.m_serverSocket.Close()
-		serverEntity.m_isServerWorking = false
-	}
-}
-
-func (mainServer *Server) ProcessClientConnection(userIp string) {
-	defer mainServer.m_waitGroup.Done()
-
-	buffer := make([]byte, 1024)
-
-	var errorCounter = 0
-	for {
-		_, err := mainServer.m_connectedClients[userIp].Read(buffer)
-		if err != nil {
-			fmt.Println("Error while processing user with ip: ", userIp)
-			errorCounter++
-			if errorCounter > 5 {
-				return
+func LoginHttp(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		w.Write(ReadWebFile("html/index.html"))
+	} else if r.Method == http.MethodPost {
+		contents, _ := ioutil.ReadAll(r.Body)
+		fmt.Println("Login HTTP got contents: " + string(contents))
+		splittedContents := strings.Split((string)(contents), "&")
+		if len(splittedContents) > 1 {
+			username := strings.Split(splittedContents[0], "=")[1]
+			password := strings.Split(splittedContents[1], "=")[1]
+			fmt.Println("*** TRYING to login: " + username + " : " + password)
+			var newUser User
+			if newUser.LogIn(username, CryptoHashString(password)) {
+				w.Write(ReadWebFile("html/loginOK.html"))
+			} else {
+				w.Write(ReadWebFile("html/index.html"))
 			}
 		}
-
-		mainServer.m_connectedClients[userIp].Write([]byte("Got it"))
-		fmt.Println("New message from ", userIp, " : ", string(buffer))
-
-		if strings.Contains(string(buffer), "stop") {
-			mainServer.StopServer()
-			return
-		}
 	}
+}
+
+func LogRet(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte(indexPage2))
+}
+
+func ex1() {
+	d := http.Dir(".")
+	f, err := d.Open("./html/css/styles.css")
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+}
+
+func InitializeServer(port string) {
+	http.HandleFunc("/login", LoginHttp)
+	http.HandleFunc("/ret", LogRet)
+	//http.HandleFunc("/css/styles.css", FileStylesCSS)
+	fmt.Println(os.Getwd())
+	ex1()
+	http.Handle("/css/", http.StripPrefix("/css", http.FileServer(http.Dir("./html/css"))))
+
+	http.ListenAndServe(":5555", nil)
 }
