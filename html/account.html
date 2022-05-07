@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" href="/css/styles.css">
+      </head>
+    <body>
+        <p>Welcome, {{.Username}} </p>
+        <table>
+            <tr>
+                <th>Vehicle</th>
+                <th> | Vehicle Manufacturer</th>
+                <th> | Model </th>
+                <th> | Connectivity status</th>
+                <th> | Latest status check </th>
+            </tr>
+            <tr>
+                <td>Civ. car</td>
+                <td> | {{.VehicleManufacturer}}</td>
+                <td> | C-LSE </td>
+                <td> | {{.SecuritySystemStatus}} </td>
+                <td> | {{.LastCheckStatus}} </td>
+            </tr>
+        </table>
+        <br>
+        <bodyCheckStatus>
+            <form method="post" action="/account">
+                <button id="check" type="submit" value="123">Check status</button>
+            </form>
+        </bodyCheckStatus>
+    </body>
+</form>
+</html>

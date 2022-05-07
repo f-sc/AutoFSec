@@ -1,4 +1,4 @@
-package main
+package AutoFSecBackend
 
 import (
 	"fmt"
@@ -23,7 +23,7 @@ func (systemManager *MainSystemManager) SystemWaitBackground() {
 			return
 		} else {
 			fmt.Println("\nNew sleep started")
-			time.Sleep(time.Millisecond * 10)
+			time.Sleep(time.Millisecond * 100)
 		}
 	}
 }
